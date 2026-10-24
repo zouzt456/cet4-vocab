@@ -1,0 +1,7 @@
+dist/
+ecdict.csv
+corpus/
+*.zip
+node_modules/
+__pycache__/
+*.pyc
