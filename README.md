@@ -10,7 +10,7 @@
 
 三端成品在 [Releases](https://github.com/zouzt456/cet4-vocab/releases) 里，资产名用 ASCII：`cet4-vocab.html` / `cet4-vocab.apk` / `cet4-vocab.exe`。
 
-词库共 **3849** 个四级词条（来自 ECDICT 中 `tag` 含 `cet4` 的条目，100% 有中文释义）。官方大纲约 4500 词，ECDICT 少标约 650 个；本项目**不自行补词**，宁可缺也不编。
+词库共 **3849** 个四级词条（来自 ECDICT 中 `tag` 含 `cet4` 的条目，100% 有中文释义）。
 
 ![背单词](docs/answer.png)
 ![词表查词](docs/list.png)
@@ -77,9 +77,3 @@ node scripts/check_confirm.js  # 自绘确认框
 - 代码：MIT
 - 词典数据：ECDICT，MIT
 - 例句：Tatoeba，CC-BY 2.0 FR（例句旁的 `— TED 演讲` 等标注保留来源）
-
-## 已知不足
-
-- 词表比官方大纲少约 650 词（见上）。
-- 例句覆盖不均匀：高频词多、低频词少，少数词没有例句。
-- 只有中文释义 + 英文释义，没有词根词缀、记忆法。
