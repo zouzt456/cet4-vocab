@@ -60,7 +60,8 @@ ok(getEl('cans').className === 'ans', '默认展开释义');
 ok(getEl('cnt').textContent === '1 / 3849', '计数 -> ' + getEl('cnt').textContent);
 ok(getEl('pmeta').textContent.indexOf('第 1 词') >= 0, '进度文案含 第 1 词');
 ok(getEl('pmeta').textContent.indexOf('进度 0.03%') >= 0, '进度两位小数 -> ' + getEl('pmeta').textContent);
-ok(getEl('bToggle').textContent === '收起释义', '展开按钮初始为 收起释义');
+ok(html.indexOf('bToggle') < 0 && html.indexOf('收起释义') < 0, '收起/展开按钮已删除（2026-10-25）');
+ok(typeof ctx.toggleAns === 'undefined', '已无 toggleAns 函数');
 ok(getEl('pfill').style.width === '0.03%', '进度条宽 ' + getEl('pfill').style.width);
 
 ok(egCount(ansKids()) === 1, '第 1 张卡放 1 条例句（实际 ' + egCount(ansKids()) + '）');
@@ -69,12 +70,7 @@ ok(getEl('c2head').textContent === 'state · 其余 2 条例句', '第 2 张卡�
 ok(egCount(c2Kids()) === 2, '第 2 张卡放剩余 2 条例句');
 ok(getEl('c2ans').className === 'ans', '第 2 张卡默认也展开');
 
-getEl('bToggle')._listeners.click.call(getEl('bToggle'), {});
-ok(getEl('cans').className === 'ans hidden' && getEl('c2ans').className === 'ans hidden', '按钮同时收起两张卡');
-ok(getEl('bToggle').textContent === '展开释义', '收起后按钮变 展开释义');
-getEl('bToggle')._listeners.click.call(getEl('bToggle'), {});
-ok(getEl('cans').className === 'ans' && getEl('c2ans').className === 'ans', '再按同时展开');
-ok(getEl('bToggle').textContent === '收起释义', '展开后按钮变回 收起释义');
+ok(getEl('cans').className === 'ans' && getEl('c2ans').className === 'ans', '释义始终可见，没有隐藏态');
 
 // 例句少的词 → 不出现第二张卡
 const fewIdx = (() => { for (let i = 0; i < ctx.DATA.length; i++) { const n = (ctx.EX[ctx.DATA[i][0]] || []).length; if (n > 0 && n <= 2) return i; } return -1; })();
@@ -105,9 +101,9 @@ ok(getEl('cnt').textContent === '1 / 3849', '< 键回到第 1 词');
 key('ArrowRight'); key('ArrowLeft');
 ok(getEl('cnt').textContent === '1 / 3849', '方向键往返');
 key('Space', 'Space');
-ok(getEl('cans').className === 'ans hidden', '空格收起');
+ok(getEl('cnt').textContent === '2 / 3849', '空格 = 下一张 (' + getEl('cnt').textContent + ')');
 key('Space', 'Space');
-ok(getEl('cans').className === 'ans', '空格展开');
+ok(getEl('cnt').textContent === '3 / 3849', '空格再下一张');
 ok(pressed.length >= 6, '按键已 preventDefault');
 
 // 词表

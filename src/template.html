@@ -57,8 +57,19 @@ nav .badge.hidden{display:none}
 .more{display:inline-block;margin-top:2px;border:0;background:none;color:#165dff;font-size:13px;cursor:pointer;padding:6px 0}
 .more:hover{text-decoration:underline}
 .row .st{float:right;border:0;background:none;color:#ffb400;font-size:21px;cursor:pointer;padding:0 4px;line-height:1}
-.wrap{display:flex;gap:16px;align-items:flex-start}
-.cards{display:flex;gap:16px;flex:1 1 auto;min-width:0;min-height:calc(100vh - 252px);align-items:stretch}
+.wrap{display:flex;gap:16px;align-items:flex-start;position:relative;overflow-x:clip}   /* 预览卡在右侧待命，别撑出横向滚动条 */
+/* 滑动时的底层卡「下一张词」，手指拖开时旧卡滑走、这层盖上来 */
+.under{position:absolute;left:0;top:0;width:100%;height:100%;z-index:2;opacity:0;pointer-events:none;transform:translateX(100%);will-change:transform}
+.under>.pstack{display:flex;flex-direction:column;gap:12px}
+.under>.pstack.prow{flex-direction:row;gap:16px;align-items:stretch}   /* 用 prow 而非 row：row 是词表行的类名，会误命中隐藏例句的规则 */
+.under .pcopy{flex:0 0 auto;width:100%;min-height:0;margin:0;box-shadow:0 10px 30px rgba(23,26,29,.14)}   /* 克隆自真实卡片：字号/内边距/例句排版/夜间色全套继承 */
+.under>.pstack:not(.prow) .eglist{justify-content:flex-start}   /* 窄屏真卡也是 flex-start，克隆要对齐 */
+.under>.pstack.prow .pcopy{flex:1 1 0;width:auto}
+.under>.pcard{height:100%;background:#fff;border:1px solid #e5e6eb;border-radius:16px;padding:26px 30px;box-shadow:0 8px 26px rgba(23,26,29,.1);overflow:hidden}
+.under .pcard .word{font-size:56px;font-weight:800;letter-spacing:-.5px;line-height:1.1}
+.under .pcard .ph{color:#86909c;font-size:17px;margin-top:8px;min-height:22px}
+.under .pcard .ans{margin-top:16px;font-size:20px;line-height:1.7;white-space:pre-line;color:#1d2129}
+.cards{display:flex;gap:16px;flex:1 1 auto;min-width:0;min-height:calc(100vh - 252px);align-items:stretch;position:relative;z-index:1;touch-action:pan-y;will-change:transform,opacity}
 .card{flex:1 1 0;min-width:0;user-select:text;cursor:default;justify-content:flex-start}
 .card2{display:none;cursor:pointer;flex-direction:column}
 .card2.on{display:flex}
@@ -66,6 +77,7 @@ nav .badge.hidden{display:none}
 .card2 .ans{margin-top:8px;padding-top:0;border-top:0}
 .card2 .egs{margin-top:10px;padding-top:0;border-top:0}
 .side{flex:0 0 146px;display:flex;flex-direction:column;justify-content:flex-start;gap:10px;position:sticky;top:104px}
+.side.hide{display:none!important}   /* 左右滑动模式不显示上一张/下一张 */
 .side button{padding:18px 8px;font-size:16px;border-radius:10px;cursor:pointer;background:#fff;color:#165dff;border:1px solid #d6e4ff;font-weight:600}
 .side button:hover{background:#f2f5ff}
 .side button:disabled{color:#c9cdd4;border-color:#e5e6eb;background:#fff;cursor:default}
@@ -170,12 +182,15 @@ html.dark .more{color:#6ea8ff}
 html.dark nav .badge{background:#c98a00}
 html.dark .star,html.dark .row .st{color:#ffc53d}
 html.dark .side{background:#1b1e23}
+html.dark .under .pcard{background:#1b1e23;border-color:#2b2f36}
+html.dark .under .pcard .ans{color:#dfe2e8}
+html.dark .under .pcard .ph{color:#8f959e}
 @media(max-width:860px){html.dark .side{background:#1b1e23;border-top-color:#2b2f36}}
 .theme{position:absolute;right:18px;top:12px;border:1px solid #e5e6eb;background:#fff;border-radius:9px;font-size:17px;line-height:1;padding:7px 10px;cursor:pointer;z-index:6}
 .theme:hover{background:#f2f5ff}
 @media(max-width:600px){.theme{right:10px;top:8px;padding:6px 8px;font-size:15px}}
 /* ---- 同步面板（2026-10-23 加） ---- */
-.sheet{position:absolute;right:18px;top:48px;z-index:8;background:#fff;border:1px solid #e5e6eb;border-radius:12px;box-shadow:0 12px 32px rgba(0,0,0,.14);padding:6px;min-width:210px}
+.sheet{position:absolute;right:18px;top:48px;z-index:8;background:#fff;border:1px solid #e5e6eb;border-radius:12px;box-shadow:0 12px 32px rgba(0,0,0,.14);padding:6px;min-width:210px;max-width:calc(100vw - 24px)}
 .sheet.hidden{display:none!important}
 .sheet button{display:flex;align-items:center;gap:10px;width:100%;box-sizing:border-box;border:0;background:transparent;border-radius:8px;padding:10px 12px;font-size:15px;color:#1f2329;cursor:pointer;text-align:left}
 .sheet button:hover{background:#f2f5ff}
@@ -184,6 +199,15 @@ html.dark .side{background:#1b1e23}
 html.dark .sheet{background:#1b1e23;border-color:#30353d;box-shadow:0 12px 32px rgba(0,0,0,.5)}
 html.dark .sheet button{color:#e6e8eb}
 html.dark .sheet button:hover{background:#262b33}
+/* ---- 菜单里的「模式 / 顺序」（2026-10-25 从 meta 移入 ☰） ---- */
+.sheet .msel{display:flex;flex-direction:column;gap:8px;padding:8px 12px 10px;margin:2px 0;border-top:1px solid #eef0f3;border-bottom:1px solid #eef0f3}
+.sheet .msel label{display:block;font-size:15px;color:#1f2329}
+.sheet .msel label span{display:block;margin-bottom:4px;font-size:14px;color:#86909c}
+.sheet .msel select{display:block;width:100%;box-sizing:border-box;font-size:14px;padding:5px 8px;border:1px solid #dcdfe6;border-radius:6px;background:#fff;color:#4e5969}
+html.dark .sheet .msel{border-color:#2a2f37}
+html.dark .sheet .msel label{color:#e6e8eb}
+html.dark .sheet .msel label span{color:#8f959e}
+html.dark .sheet .msel select{background:#21252c;border-color:#333941;color:#e5e6eb}
 .mask{position:fixed;left:0;top:0;right:0;bottom:0;background:rgba(17,20,26,.45);z-index:20;display:flex;align-items:center;justify-content:center;padding:20px}
 .mask.hidden{display:none!important}
 .modal.cf{max-width:430px}
@@ -216,6 +240,21 @@ try{var _t=localStorage.getItem('cet4-theme-v1');var _d=(_t==='dark')||(!_t&&win
   <div class="sheet hidden" id="menuBox">
     <button id="miTheme"><span class="ic" id="miThemeIc">🌙</span><span id="miThemeTx">夜间模式</span></button>
     <button id="miSync"><span class="ic">⇄</span><span>同步生词本与进度</span></button>
+    <div class="msel">
+      <label><span>模式</span><select id="mode">
+        <option value="all">全部单词</option>
+        <option value="star">只背生词</option>
+      </select></label>
+      <label><span>顺序</span><select id="order">
+        <option value="bnc">网站词频顺序（默认）</option>
+        <option value="alpha">字母</option>
+        <option value="rand">随机</option>
+      </select></label>
+      <label><span>切词</span><select id="tapMode">
+        <option value="swipe">左右滑动</option>
+        <option value="btn">上一张 / 下一张</option>
+      </select></label>
+    </div>
     <button id="miFirst"><span class="ic">↩</span><span>回到第一个词</span></button>
     <button id="miClearStars"><span class="ic">☆</span><span id="miClearTx">清空生词本</span></button>
   </div>
@@ -232,18 +271,10 @@ try{var _t=localStorage.getItem('cet4-theme-v1');var _d=(_t==='dark')||(!_t&&win
       <span id="pmeta"></span>
       <span style="display:flex;gap:14px;align-items:center">
         <input id="jump" class="jump" placeholder="跳到某个词…" title="输入英文单词后按回车，直接跳到那张卡">
-        <span>模式 <select id="mode">
-          <option value="all">全部单词</option>
-          <option value="star">只背生词</option>
-        </select></span>
-        <span>顺序 <select id="order">
-          <option value="bnc">网站词频顺序（默认）</option>
-          <option value="alpha">字母</option>
-          <option value="rand">随机</option>
-        </select></span>
       </span>
     </div>
     <div class="wrap">
+      <div class="under" id="swipeUnder" aria-hidden="true"></div>
       <div class="cards" id="cards">
       <div class="card" id="card">
         <button class="star" id="star" title="加入生词本">☆</button>
@@ -257,11 +288,10 @@ try{var _t=localStorage.getItem('cet4-theme-v1');var _d=(_t==='dark')||(!_t&&win
         <div class="ans" id="c2ans"></div>
       </div>
       </div>
-      <div class="side">
+      <div class="side" id="side">
         <button id="bPrev">‹ 上一张</button>
         <button id="bNext">下一张 ›</button>
         <span class="cnt" id="cnt"></span>
-        <button id="bToggle">收起释义</button>
       </div>
     </div>
   </section>
@@ -374,10 +404,21 @@ var LSS='cet4-stars-v1';
 var stars={};
 try{var stv=JSON.parse(localStorage.getItem(LSS)||'{}');if(stv&&typeof stv==='object'){for(var sk in stv){if(stv[sk])stars[sk]=1;}}}catch(e){}
 var pref={order:'bnc',mode:'all'};
+/* 切词方式：swipe=左右滑动（默认） / btn=上一张·下一张按钮，两者互斥（2026-10-25 用户要求） */
+/* 切词方式：swipe=左右滑动（默认，此时隐藏上一张/下一张） / btn=点上一张·下一张按钮（此时滑动不翻页） */
+var LST='cet4-tap-v1',tapMode='swipe';
+try{var tv=localStorage.getItem(LST);if(tv==='btn'||tv==='tap')tapMode='btn';else if(tv==='swipe')tapMode='swipe';}catch(e){}
+function saveTap(){try{localStorage.setItem(LST,tapMode);}catch(e){}}
+function applySide(){var s=$('side');if(s)s.className=(tapMode==='btn'?'side':'side hide');}
+function hintText(){
+  return tapMode==='btn'
+    ? '点「上一张 / 下一张」切词　·　空格：下一张　·　s 发音　·　f 收藏　·　d 夜间模式'
+    : '空格：下一张　·　‹ › ← →：翻词　·　s 发音　·　f 收藏　·　d 夜间模式　·　手机左右滑动翻词';
+}
 /* 每个模式各自记住停在第几张：切回来回到该模式自己的位置，不会跳到另一个模式的卡片 */
 var slotAll=0,slotStar=0;
 try{var sv=JSON.parse(localStorage.getItem(LS)||'{}');if(sv&&typeof sv==='object'){if(sv.order)pref.order=sv.order;if(sv.mode==='star'||sv.mode==='all')pref.mode=sv.mode;if(typeof sv.i==='number'&&sv.i>=0)slotAll=sv.i;if(typeof sv.s==='number'&&sv.s>=0)slotStar=sv.s;}}catch(e){}
-var orderArr=[],pos=0,cur=null,shown=true;
+var orderArr=[],pos=0,cur=null;
 
 function $(id){return document.getElementById(id);}
 function keepCur(){if(pref.mode==='star')slotStar=pos;else slotAll=pos;}
@@ -424,9 +465,40 @@ function egNode(w,it,fs,gs){
   return eg;
 }
 
+/* 例句块构建器：真实卡片和滑动预览卡共用，保证两边排版/高亮一字不差 */
+function egWrap(w,list,from,to,hdText){
+  var wrap=document.createElement('div');wrap.className='egs';
+  if(hdText){var hd=document.createElement('div');hd.className='hd';hd.textContent=hdText;wrap.appendChild(hd);}
+  var fs=formsOf(w),gs=glossesOf(w),egl=document.createElement('div');egl.className='eglist';
+  for(var i=from;i<to;i++)egl.appendChild(egNode(w,list[i],fs,gs));
+  wrap.appendChild(egl);
+  return wrap;
+}
+function egHeadText(w,list,narrow){
+  return '真实例句 · 中英对照（'+list.length+'）'+(list.length>2?'　·　其余 '+(list.length-1)+' 条在'+(narrow?'下方':'右卡'):'');
+}
+function paintAns(ans,w,list,leftN,narrow){
+  ans.innerHTML='';
+  var tr=document.createElement('div');tr.textContent=w[C.tr];ans.appendChild(tr);
+  if(list.length)ans.appendChild(egWrap(w,list,0,leftN,egHeadText(w,list,narrow)));
+  ans.className='ans';
+}
+function paintC2(ansEl,w,list,from){
+  if(!ansEl)return;
+  ansEl.innerHTML='';
+  var wrap=document.createElement('div');wrap.className='egs';
+  var fs=formsOf(w),gs=glossesOf(w),egl=document.createElement('div');egl.className='eglist';
+  for(var i=from;i<list.length;i++)egl.appendChild(egNode(w,list[i],fs,gs));
+  wrap.appendChild(egl);
+  ansEl.appendChild(wrap);
+  ansEl.className='ans';
+}
+
 function renderCard(){
+  var _cb=$('cards');                 /* 保险：任何情况下都不让卡片留在位移/淡出的中间态 */
+  if(_cb){_cb.style.transform='';_cb.style.opacity='';}
   if(!orderArr.length){
-    cur=null;shown=true;
+    cur=null;
     $('cword').textContent='—';$('cph').textContent='';$('cans').innerHTML='';
     $('chint').textContent='生词本还是空的：背单词时点右上角 ☆ 或按 f 收藏，再回到这里就能只背生词';
     $('card2').className='card card2';
@@ -440,33 +512,15 @@ function renderCard(){
   var w=DATA[orderArr[pos]],list=exOf(w);cur=w;
   $('cword').textContent=w[C.w];
   $('cph').textContent=w[C.ph]||'';
-  var ans=$('cans');ans.innerHTML='';
-  var fs=formsOf(w),gs=glossesOf(w),i;
+  var ans=$('cans');
   var narrow=(typeof window!=='undefined'&&window.innerWidth&&window.innerWidth<=1100);
   var leftN=list.length>2?1:list.length;
-  var d=document.createElement('div');d.textContent=w[C.tr];ans.appendChild(d);
-  if(list.length){
-    var wrap=document.createElement('div');wrap.className='egs';
-    var hd=document.createElement('div');hd.className='hd';
-    hd.textContent='真实例句 · 中英对照（'+list.length+'）'+(list.length>2?'　·　其余 '+(list.length-1)+' 条在'+(narrow?'下方':'右卡'):'');
-    wrap.appendChild(hd);
-    var egl=document.createElement('div');egl.className='eglist';
-    for(i=0;i<leftN;i++)egl.appendChild(egNode(w,list[i],fs,gs));
-    wrap.appendChild(egl);
-    ans.appendChild(wrap);
-  }
-  ans.className=shown?'ans':'ans hidden';
+  paintAns(ans,w,list,leftN,narrow);
 
   var c2=$('card2'),rest=list.length-leftN;
   if(rest>0){
     $('c2head').textContent=w[C.w]+' · 其余 '+rest+' 条例句';
-    var a2=$('c2ans');a2.innerHTML='';
-    var w2=document.createElement('div');w2.className='egs';
-    var eg2=document.createElement('div');eg2.className='eglist';
-    for(i=leftN;i<list.length;i++)eg2.appendChild(egNode(w,list[i],fs,gs));
-    w2.appendChild(eg2);
-    a2.appendChild(w2);
-    a2.className=shown?'ans':'ans hidden';
+    paintC2($('c2ans'),w,list,leftN);
     c2.className='card card2 on';
     $('cards').className='cards duo';
   } else {
@@ -478,7 +532,7 @@ function renderCard(){
   }
 
   syncStar();
-  $('chint').textContent='空格：「收起 / 展开释义」　·　‹ › ← →：翻词　·　s 发音　·　f 收藏　·　d 夜间模式';
+  $('chint').textContent=hintText();
   var wp=pos+1;
   $('cnt').textContent=wp+' / '+orderArr.length;
   var pct=(wp/orderArr.length*100).toFixed(2);
@@ -486,17 +540,9 @@ function renderCard(){
   $('pfill').style.width=pct+'%';
   $('bPrev').disabled=pos<=0;
   $('bNext').disabled=pos>=orderArr.length-1;
-  $('bToggle').textContent=shown?'收起释义':'展开释义';
 }
 
-function toggleAns(){
-  shown=!shown;
-  $('cans').className=shown?'ans':'ans hidden';
-  var a2=$('c2ans');
-  if(a2)a2.className=shown?'ans':'ans hidden';
-  $('bToggle').textContent=shown?'收起释义':'展开释义';
-}
-function go(d){var n=pos+d;if(n<0||n>=orderArr.length)return;pos=n;shown=true;save();renderCard();}
+function go(d){var n=pos+d;if(n<0||n>=orderArr.length)return;pos=n;save();renderCard();}
 
 $('star').addEventListener('click',function(e){
   e.stopPropagation();
@@ -508,9 +554,210 @@ $('star').addEventListener('click',function(e){
 });
 $('spk').addEventListener('click',function(e){e.stopPropagation();if(cur)speak(cur[C.w]);});
 $('bPrev').addEventListener('click',function(){go(-1);});
-$('bToggle').addEventListener('click',function(){toggleAns();});
 $('bNext').addEventListener('click',function(){go(1);});
+/* ---- 手机：左右滑动切词——下一张整张卡从侧边盖上来，原卡不动（2026-10-25 v2） ---- */
+(function(){
+  var sx=0,sy=0,t0=0,active=false,dragging=false,dx=0;
+  var box=$('cards'),under=$('swipeUnder');
+  if(!box)return;
+  var DUR=190;
+  function skip(el){
+    while(el&&el!==box){
+      var t=el.tagName||'';
+      if(t==='INPUT'||t==='TEXTAREA'||t==='SELECT'||t==='BUTTON')return true;
+      el=el.parentNode;
+    }
+    return false;
+  }
+  function canGo(d){var n=pos+d;return n>=0&&n<orderArr.length;}
+  var underDir=0,underBuilt=false,underW=0;
+  function wordCard(){return $('card');}
+  function vw(){return underW||(box&&box.clientWidth)||((window&&window.innerWidth)||420);}
+  /* 预览层对准当前词卡本身：看起来是同一张卡被盖住，而不是旁边多出一块面板 */
+  function card2Visible(){var c2=$('card2');return !!(c2&&c2.className.indexOf('on')>=0);}
+  function fitUnder(){
+    var c=wordCard(),wrap=box.parentNode;
+    if(!under||!c||!wrap||!c.getBoundingClientRect||!wrap.getBoundingClientRect)return;
+    var wr=wrap.getBoundingClientRect(),cr=c.getBoundingClientRect();
+    if(!cr.width||!cr.height)return;
+    var left=cr.left,top=cr.top,right=cr.right,bottom=cr.bottom;
+    var c2=$('card2');
+    if(card2Visible()&&c2&&c2.getBoundingClientRect){
+      var r2=c2.getBoundingClientRect();
+      if(r2.width&&r2.height){left=Math.min(left,r2.left);top=Math.min(top,r2.top);right=Math.max(right,r2.right);bottom=Math.max(bottom,r2.bottom);}
+    }
+    under.style.left=(left-wr.left)+'px';
+    under.style.top=(top-wr.top)+'px';
+    under.style.width=(right-left)+'px';
+    under.style.height=(bottom-top)+'px';
+    underW=cr.width;
+  }
+  function rectOf(el){
+    if(!el||!el.getBoundingClientRect)return null;
+    var r=el.getBoundingClientRect();
+    return (r.width&&r.height)?r:null;
+  }
+  function cloneClean(src){
+    if(!src||!src.cloneNode)return null;
+    var node=src.cloneNode(true);
+    if(node.querySelectorAll)Array.prototype.forEach.call(node.querySelectorAll('[id]'),function(el){el.removeAttribute('id');});
+    node.removeAttribute('id');
+    return node;
+  }
+  function fillWordClone(node,w,list,leftN,narrow){
+    var q=function(sel){return node.querySelector?node.querySelector(sel):null;};
+    var wd=q('.word'),ph=q('.ph span'),an=q('.ans'),st=q('.star'),ht=q('.hint');
+    if(wd)wd.textContent=w[C.w];
+    if(ph)ph.textContent=w[C.ph]||'';
+    if(an)paintAns(an,w,list,leftN,narrow);
+    if(st)st.style.display='none';
+    if(ht)ht.style.display='none';
+    node.className=(node.className?node.className.replace(/\s*pcopy\s*/g,' ')+' ':'')+'pcopy';
+  }
+  function fillC2Clone(node,w,list,from){
+    var q=function(sel){return node.querySelector?node.querySelector(sel):null;};
+    var hd=q('.hd');
+    if(hd)hd.textContent=w[C.w]+' · 其余 '+(list.length-from)+' 条例句';
+    paintC2(q('.ans'),w,list,from);
+    var cls=(node.className||'').replace(/\s*on\b/g,' ');
+    node.className=cls+' on pcopy';
+  }
+  function previewCard(d){
+    if(!under)return;
+    under.innerHTML='';
+    var n=pos+d;
+    var w=(n>=0&&n<orderArr.length)?DATA[orderArr[n]]:null;
+    if(!w){under.setAttribute('data-w','');return;}
+    under.setAttribute('data-w',String(w[C.w]));
+    var list=exOf(w),leftN=list.length>2?1:list.length,rest=list.length-leftN;
+    var narrow=(typeof window!=='undefined'&&window.innerWidth&&window.innerWidth<=1100);
+    var duo=($('cards')&&$('cards').className.indexOf('duo')>=0);
+    var rowLayout=duo&&!narrow;          /* 只有宽屏两栏时才并排，手机永远上下堆叠 */
+    var stack=document.createElement('div');
+    stack.className='pstack'+(rowLayout?' prow':'');
+    var rc=rectOf(wordCard()),rc2=rectOf($('card2'));
+    var c1=cloneClean(wordCard());
+    if(c1){
+      /* 克隆真实卡：字号、内边距、例句排版、夜间配色全部跟当前视口一致 */
+      fillWordClone(c1,w,list,leftN,narrow);
+      if(rc&&rc.height)c1.style.height=rc.height+'px';   /* 尺寸也照抄真实卡：拉动中看到的＝松手后的样子 */
+      stack.appendChild(c1);
+      if(rest>0&&$('card2')){
+        var c2=cloneClean($('card2'));
+        if(c2){fillC2Clone(c2,w,list,leftN);if(rc2&&rc2.height)c2.style.height=rc2.height+'px';stack.appendChild(c2);}
+      }
+      under.appendChild(stack);
+      return;
+    }
+    /* 兜底（拿不到 DOM 克隆能力时）：手搭一张，带上释义和第一条例句 */
+    var c=document.createElement('div');c.className='pcard';
+    var wd2=document.createElement('div');wd2.className='word';wd2.textContent=w[C.w];c.appendChild(wd2);
+    var ph2=document.createElement('div');ph2.className='ph';ph2.textContent=w[C.ph]||'';c.appendChild(ph2);
+    var an2=document.createElement('div');an2.className='ans';
+    var tr2=document.createElement('div');tr2.textContent=String(w[C.tr]||'');an2.appendChild(tr2);
+    if(list.length){var eg=egNode(w,list[0],formsOf(w),glossesOf(w));eg.className='eg';an2.appendChild(eg);}
+    c.appendChild(an2);
+    stack.appendChild(c);
+    under.appendChild(stack);
+  }
+  function setUnder(d){
+    if(!under||(d===underDir&&underBuilt))return;
+    underDir=d;previewCard(d);underBuilt=true;
+  }
+  var animId=0;                 /* 动画代号：新动作或新拖动就让旧定时器作废，避免互相清样式 */
+  function dimSecond(on){                 /* 例句卡不属于词卡本身：拖动时压暗，提示它也会跟着换 */
+    var c2=$('card2');
+    if(!c2)return;
+    c2.style.transition='opacity .15s ease';
+    c2.style.opacity=on?'0.4':'';
+  }
+  function clearStyles(){
+    if(under){
+      under.style.transition='';under.style.transform='translateX(100%)';under.style.opacity='0';
+      under.style.left='';under.style.top='';under.style.width='';under.style.height='';
+      under.innerHTML='';under.setAttribute('data-w','');
+    }
+    underDir=0;underBuilt=false;underW=0;
+    dimSecond(false);
+  }
+  function springBack(){
+    var my=++animId;
+    var wp=vw();
+    if(under){
+      under.style.transition='transform .2s cubic-bezier(.2,.8,.3,1), opacity .16s ease';
+      under.style.transform='translateX('+(underDir>0?wp:-wp)+'px)';
+      under.style.opacity='0';
+    }
+    setTimeout(function(){if(my===animId)clearStyles();},230);
+  }
+  function slideOut(d){
+    var my=++animId;
+    if(under){
+      under.style.transition='transform '+DUR+'ms ease-out';
+      under.style.transform='translateX(0)';       /* 下一张整张盖满当前卡 */
+      under.style.opacity='1';
+    }
+    setTimeout(function(){
+      if(my!==animId)return;
+      go(d);                                      /* 换词，盖住的新卡这时才露出来 */
+      clearStyles();                              /* 同一帧撤掉预览层：内容一样，看不出切换 */
+      dimSecond(false);
+    },DUR);
+  }
+  box.addEventListener('touchstart',function(e){
+    if(!e.touches||e.touches.length!==1)return;
+    if(skip(e.target))return;                    /* 从按钮/输入框起手：不接管，别误翻 */
+    sx=e.touches[0].clientX;sy=e.touches[0].clientY;t0=Date.now();
+    active=true;dragging=false;dx=0;underDir=0;underBuilt=false;animId++;
+  },{passive:true});
+  box.addEventListener('touchmove',function(e){
+    if(!active)return;
+    if(tapMode!=='swipe')return;                 /* 按钮模式下不接管滑动 */
+    if($('v-card').className.indexOf('on')<0)return;
+    if(confirmOpen())return;
+    var t=e.touches&&e.touches[0];
+    if(!t)return;
+    var mx=t.clientX-sx,my=t.clientY-sy;
+    if(!dragging){
+      if(Math.abs(mx)<9)return;
+      if(Math.abs(mx)<Math.abs(my)*1.2)return;   /* 纵向为主的滑动是在滚释义，不接管 */
+      dragging=true;
+      fitUnder();
+      dimSecond(true);                                /* 先把预览层贴到当前词卡上 */
+      setUnder(mx<0?1:-1);
+      if(under){under.style.transition='none';}
+    }
+    dx=mx;
+    var d=dx<0?1:-1;
+    var ok=canGo(d);
+    setUnder(d);
+    if(!under)return;
+    var wp=vw();
+    if(!ok){under.style.opacity='0';return;}     /* 没有下一张：不硬拉出空卡 */
+    /* 下一张从侧边 1:1 跟手盖上来；原卡原地不动，所以右侧直接就是完整的那张卡 */
+    under.style.transform='translateX('+((d>0?wp:-wp)+dx)+'px)';
+    under.style.opacity='1';
+  },{passive:true});
+  function endSlide(){
+    if(!active)return;
+    active=false;
+    var was=dragging,mv=dx;
+    dragging=false;dx=0;
+    if(!was){clearStyles();return;}
+    var d=mv<0?1:-1;
+    if($('v-card').className.indexOf('on')<0||tapMode!=='swipe'||confirmOpen()){springBack();return;}
+    if(Math.abs(mv)<56||!canGo(d)||Date.now()-t0>1400){springBack();return;}
+    slideOut(d);
+  }
+  box.addEventListener('touchend',function(e){
+    var t=e&&e.changedTouches&&e.changedTouches[0];
+    if(t&&active)dx=t.clientX-sx;   /* 以松手位置为准，滑动距离更准 */
+    endSlide();
+  },{passive:true});
+  box.addEventListener('touchcancel',function(){if(active){active=false;dragging=false;dx=0;springBack();}},{passive:true});
+})();
 function refreshMode(){if(pref.mode!=='star')return;var at=pos;buildOrder();if(pos>orderArr.length-1)pos=Math.max(0,orderArr.length-1);save();renderCard();}
+$('tapMode').addEventListener('change',function(){tapMode=this.value==='btn'?'btn':'swipe';saveTap();applySide();if(cur)renderCard();});
 $('mode').addEventListener('change',function(){
   keepCur();                       /* 先把当前模式的位置存进它自己的槽 */
   pref.mode=this.value;
@@ -518,7 +765,7 @@ $('mode').addEventListener('change',function(){
   pos=slotOf(pref.mode);           /* 回到该模式上次停的那一张 */
   if(pos<0)pos=0;
   if(pos>orderArr.length-1)pos=Math.max(0,orderArr.length-1);
-  shown=true;save();renderCard();
+  save();renderCard();
 });
 $('order').addEventListener('change',function(){
   pref.order=this.value;keepWord();save();renderCard();
@@ -534,7 +781,7 @@ document.addEventListener('keydown',function(e){
   var _ae=document.activeElement;
   if(_ae&&(_ae.tagName==='INPUT'||_ae.tagName==='TEXTAREA'))return;
   var k=e.key;
-  if(e.code==='Space'){e.preventDefault();toggleAns();}
+  if(e.code==='Space'){e.preventDefault();go(1);}
   else if(k==='ArrowLeft'||k==='<'||k===','||k==='，'){e.preventDefault();go(-1);}
   else if(k==='ArrowRight'||k==='>'||k==='.'||k==='。'){e.preventDefault();go(1);}
   else if(k==='s'||k==='S'){if(cur)speak(cur[C.w]);}
@@ -576,7 +823,7 @@ function jumpToWord(di){
   var j=orderArr.indexOf(di);
   if(j<0){ /* 顺序里不该出现 */ buildOrder(); j=orderArr.indexOf(di); }
   if(j<0)return false;
-  pos=j;shown=true;save();renderCard();activate('card');
+  pos=j;save();renderCard();activate('card');
   return true;
 }
 $('jump').addEventListener('keydown',function(e){
@@ -716,7 +963,7 @@ function curWordText(){return cur?String(cur[C.w]):'';}
 function askGotoFirst(){
   if(!orderArr.length){askConfirm('回到第一个词？','现在没有可背的词，先去生词本加几个吧。','知道了',null);return;}
   askConfirm('回到第一个词？','你现在停在第 '+(pos+1)+' 个词（共 '+orderArr.length+' 个）'+(curWordText()?'，就是 '+curWordText():'')+'。回去后要从头翻，生词本和收藏不会动。','回到第一个词',function(){
-    slotAll=0;slotStar=0;pos=0;shown=true;save();renderCard();activate('card');
+    slotAll=0;slotStar=0;pos=0;save();renderCard();activate('card');
   });
 }
 function askClearStars(){
@@ -772,7 +1019,7 @@ function applyState(o){
   pos=slotOf(pref.mode);
   if(pos<0)pos=0;
   if(pos>orderArr.length-1)pos=Math.max(0,orderArr.length-1);
-  shown=true;renderCard();syncStar();
+  renderCard();syncStar();
   try{renderList();renderStars();}catch(e){}
   return {stars:Object.keys(stars).length,pos:pos,mode:pref.mode};
 }
@@ -875,6 +1122,8 @@ $('bImport').addEventListener('click',function(){
 $('ftotal').textContent=DATA.length;
 $('order').value=pref.order;
 $('mode').value=pref.mode;
+$('tapMode').value=tapMode;
+applySide();
 paintStars();
 buildOrder();
 pos=slotOf(pref.mode);
