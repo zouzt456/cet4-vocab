@@ -18,5 +18,6 @@ win:
   icon: electron/build/icon.ico
 portable:
   artifactName: 四级词汇.exe
+electronDist: node_modules/electron/dist
 asar: true
 compression: normal
