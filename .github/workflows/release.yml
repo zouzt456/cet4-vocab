@@ -1,0 +1,82 @@
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 12
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Install
+        run: pnpm install --frozen-lockfile
+
+      - name: Verify (lint + unit + e2e)
+        run: |
+          pnpm exec biome ci .
+          pnpm test
+          pnpm build
+          pnpm exec playwright install chromium
+          pnpm test:e2e
+        shell: bash
+
+      - name: Build portable exe
+        run: pnpm dist:exe
+
+      - name: Ensure Android platform/build-tools
+        run: |
+          SDKMANAGER="$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager.bat"
+          if [ ! -f "$SDKMANAGER" ]; then SDKMANAGER=$(find "$ANDROID_HOME/cmdline-tools" -name sdkmanager.bat | head -1); fi
+          yes | "$SDKMANAGER" --licenses > /dev/null 2>&1 || true
+          "$SDKMANAGER" "platforms;android-33" "build-tools;33.0.2"
+        shell: bash
+
+      - name: Build apk
+        env:
+          ANDROID_KEYSTORE: ${{ runner.temp }}/debug.keystore
+          KS_PASS: ${{ secrets.ANDROID_KS_PASS }}
+          KEY_PASS: ${{ secrets.ANDROID_KEY_PASS }}
+          BUILD_TOOLS: "33.0.2"
+          ANDROID_PLATFORM: android-33
+        run: |
+          printf '%s' "${{ secrets.ANDROID_KEYSTORE_B64 }}" | base64 -d > "$ANDROID_KEYSTORE"
+          pnpm apk
+        shell: bash
+
+      - name: Collect assets (ascii names)
+        run: |
+          cp dist/index.html release/cet4-vocab.html
+          cp "release/四级词汇.exe" release/cet4-vocab.exe
+          ls -l release
+        shell: bash
+
+      - name: Publish release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" \
+            release/cet4-vocab.html \
+            release/cet4-vocab.exe \
+            release/cet4-vocab.apk \
+            --title "四级词汇 $GITHUB_REF_NAME" \
+            --generate-notes
+        shell: bash
