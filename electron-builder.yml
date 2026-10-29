@@ -1,0 +1,22 @@
+appId: com.zou.cet4vocab
+productName: 四级词汇
+copyright: MIT
+directories:
+  output: release
+  buildResources: electron/build
+files:
+  - electron/main.cjs
+  - electron/build/icon.png
+  - dist/index.html
+  - package.json
+win:
+  target:
+    - target: portable
+      arch:
+        - x64
+  signAndEditExecutable: false
+  icon: electron/build/icon.ico
+portable:
+  artifactName: 四级词汇.exe
+asar: true
+compression: normal

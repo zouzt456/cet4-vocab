@@ -25,6 +25,12 @@
 - **进度同步**：导出 / 导入 JSON，生词本、模式、停在的词、排序方式一起搬。
 - **离线发音**：走浏览器 `speechSynthesis`，不需要联网。
 
+## 技术栈
+
+Vue 3 + TypeScript + Vite（`vite-plugin-singlefile` 打成单个 HTML）+ Pinia 管进度状态，
+样式沿用 v1 的 CSS（保证界面不变）；桌面用 Electron，安卓用原生 WebView 壳（aapt2 + d8 + apksigner 手工链路，无 Gradle）。
+lint / 格式化用 Biome，单测 Vitest，端到端 Playwright。
+
 ## 数据来源
 
 - 词典：[ECDICT](https://github.com/skywind3000/ECDICT)（MIT），字段 `word / phonetic / translation / pos / collins / oxford / bnc / frq / tag / exchange / definition`。
@@ -34,41 +40,56 @@
 ## 目录结构
 
 ```
-src/template.html     前端模板（占位符 __DATA__ / __EX__）
-data/cet4.json        3849 条词条
-data/cet4.bnc.json    按 BNC 词频排好序的版本
-data/examples.json    例句（按词小写索引）
-scripts/gen.py        从 ecdict.csv 抽 cet4 → data/cet4.json
-scripts/mkexamples.py 从语料里挖例句
-scripts/finalize_ex.py 例句清洗（别名补齐、繁体/错配过滤、去重）
-scripts/build.py      模板 + 数据 → dist/四级词汇.html
-scripts/check*.js     Node + DOM 桩的无头测试（翻面、标记、搜索、同步、主题）
-dist/                 构建产物（不入库，见 Releases）
+src/
+  App.vue                 三个 tab 的骨架
+  components/             WordCard / ExampleList / WordList / StarList / MenuBar / SyncDialog / ConfirmDialog / Toast
+  composables/            useProgress / useTheme / useSpeech / useSwipe / useSync / useShortcuts
+  stores/progress.ts      Pinia：位置、排序、生词本、认识/不认识
+  styles/main.css         v1 的样式（逐像素对齐 v1）
+  lib/                    数据索引与工具函数
+data/cet4.json            3849 条词条
+data/cet4.bnc.json        按 BNC 词频排好序的版本
+data/examples.json        例句（按词小写索引）
+scripts/gen.py            从 ecdict.csv 抽 cet4 → data/cet4.json
+scripts/mkexamples.py     从语料里挖例句
+scripts/finalize_ex.py    例句清洗（别名补齐、繁体/错配过滤、去重）
+scripts/build.py          旧链路：模板 + 数据 → dist/四级词汇.html（v2 起由 Vite 接管）
+electron/                 Electron 主进程与图标
+android/                  WebView 壳源码 + build.sh（手工 APK 链路）
+tests/unit/               Vitest 单测
+tests/e2e/                Playwright 冒烟测试
+dist/                     构建产物（不入库）
 ```
 
 ## 本地构建
 
 ```bash
-# 1) 准备词典：把 ECDICT 的 ecdict.csv 放到仓库根目录
-#    https://github.com/skywind3000/ECDICT  （约 66 MB）
-python scripts/gen.py        # → data/cet4.json
-python scripts/build.py      # → dist/四级词汇.html
+pnpm install
+pnpm build                    # → dist/index.html（单文件，双击即用）
+
+pnpm dist:exe                 # → release/四级词汇.exe（Electron portable）
+
+# APK：需要 JDK 17 + Android SDK（build-tools / platform android-33）
+ANDROID_HOME=/path/to/sdk \
+ANDROID_KEYSTORE=/path/to/debug.keystore \
+KS_PASS=android KEY_PASS=android \
+pnpm apk                      # → release/cet4-vocab.apk
 ```
 
-例句相关的 `mkexamples.py` / `finalize_ex.py` 需要额外的 Tatoeba 语料包（`corpus/*.zip`，未入库），
-仓库里已带处理好的 `data/examples.json`，一般不需要重跑。
+数据文件（`data/*.json`）已入库，日常改代码不需要重跑 Python 脚本。
+若要重新生成词库：把 ECDICT 的 `ecdict.csv`（约 66 MB）放到仓库根目录，跑 `python scripts/gen.py`。
 
 ## 测试
 
 ```bash
-node scripts/check.js          # 数据条数、翻面、标记、搜索、生词本
-node scripts/check_mode.js     # 双卡/单卡切换
-node scripts/check_sync.js     # 导入导出
-node scripts/check_theme.js    # 夜间模式
-node scripts/check_confirm.js  # 自绘确认框
+pnpm exec biome ci .          # lint + 格式检查
+pnpm test                     # Vitest 单测（数据条数、进度迁移、导入导出、互斥设置）
+pnpm exec playwright install chromium
+pnpm test:e2e                 # Playwright：加载 dist/index.html 跑 7 个冒烟场景
 ```
 
-这些脚本用 Node 的 `vm` 造一个最小 DOM 桩，直接调用页面里的全局函数断言，不需要浏览器。
+CI（`.github/workflows/ci.yml`）在 push / PR 时跑 lint + 单测 + 构建 + e2e；
+打 `v*` tag 时 `.github/workflows/release.yml` 自动构建三端并发布 Release。
 
 ## 许可
 
