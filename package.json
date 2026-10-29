@@ -14,7 +14,7 @@
     "lint": "biome check .",
     "lint:fix": "biome check --write .",
     "electron:start": "electron electron/main.cjs",
-    "dist:exe": "electron-builder --win portable --config electron-builder.yml",
+    "dist:exe": "electron-builder --win portable --config electron-builder.yml --publish never",
     "apk": "bash android/build.sh"
   },
   "dependencies": {

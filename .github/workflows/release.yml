@@ -39,6 +39,9 @@ jobs:
           pnpm test:e2e
         shell: bash
 
+      - name: Ensure electron dist
+        run: node node_modules/electron/install.js
+
       - name: Build portable exe
         run: pnpm dist:exe
 
